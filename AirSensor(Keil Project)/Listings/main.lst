@@ -1,0 +1,203 @@
+C51 COMPILER V9.57.0.0   MAIN                                                              07/05/2021 01:07:50 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Program Files\Keil C51\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND 
+                    -PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "stc8.h" 
+   2          #include "intrins.h"
+   3          #include "delay.h"
+   4          #include "uart.h"
+   5          #include "iic.h"
+   6          #include "SGP30.h" 
+   7          #include "SHT3X.H"
+   8          #include "bmp.h"
+   9          #include "oled.h"
+  10          #include "gui.h"
+  11          #include "test.h"
+  12          #include "ADC.h"
+  13          #include "8266.h"
+  14          
+  15          int Temp,Tempshi,Tempge;   //温度
+  16          int Himi,Himishi,Himige;   //湿度
+  17          sbit EN_SGP30 = P3^2;
+  18          
+  19          int *BGV; //内部参考电压值存放在idata中 
+  20                    //idata的EFH地址存放高字节
+  21                //idata的F0H地址存放低字节
+  22                    //电压单位为毫伏(mV)
+  23          
+  24          void main() 
+  25          {
+  26   1      
+  27   1          ulong dat;
+  28   1          uchar flag = 0;
+  29   1          uint co2Data,TVOCData;
+  30   1          int res,reference; 
+  31   1          uint vcc; 
+  32   1          char Buffer[20]={0};
+  33   1          int i;
+  34   1          P3M0 = 0x00; //P3 推挽模式
+  35   1          P3M1 = 0x00; 
+  36   1          P5M0 = 0x00; 
+  37   1          P5M1 = 0x00;
+  38   1          P33=1;
+  39   1          delay_ms(5000);
+  40   1          InitSerialPort();
+  41   1          SGP30_Init(); 
+  42   1      //    printf("SGP30 init!\r\n");
+  43   1          OLED_Clear(0);      //清屏（全黑）
+  44   1          OLED_Init();        //初始化OLED             
+  45   1      //    printf("OLED init!\r\n");
+  46   1          GUI_DrawBMP(0,0,128,32, BMP7, 1);
+  47   1          BGV = (int idata *)0xef;
+  48   1          ADCInitInside() ; // 读取参考电压
+  49   1          for (i=0; i<32; i++)//读8次数据
+  50   1          {
+  51   2            res += ADCRead();
+  52   2          }
+  53   1          res >>= 5;//取平均值
+  54   1          reference =11900/res;//50000
+C51 COMPILER V9.57.0.0   MAIN                                                              07/05/2021 01:07:50 PAGE 2   
+
+  55   1          ADCInit();    
+  56   1      //    printf("ADC init!\r\n");
+  57   1      //    printf("SerialPort init!\r\n");
+  58   1          EN_SGP30 = 0;       
+  59   1          SHT3XInit();   // 初始化 SHT3X芯片
+  60   1      //    printf("SHT3X init!\r\n");    
+  61   1          init_8266();
+  62   1      //    printf("Start!\r\n");
+  63   1          
+  64   1          while(1) 
+  65   1          { 
+  66   2              // SGP30读取co2,TVOC数据  
+  67   2              SGP30_ad_write(0x20,0x08);//Measure_air_quality
+  68   2              dat = SGP30_ad_read();
+  69   2              co2Data = (dat & 0xffff0000) >> 16;
+  70   2              TVOCData = dat & 0x0000ffff;    
+  71   2              if(co2Data == 400 && TVOCData == 0 && flag == 0)
+  72   2              {
+  73   3      //          SendString("SGP sensor probing!\r\n");
+  74   3              }
+  75   2              else
+  76   2              {
+  77   3      //          printf("TVOC:%d Ppb , co2:%d Ppm\r\n",TVOCData,co2Data);
+  78   3                flag = 1;
+  79   3              }
+  80   2                        
+  81   2              SHT3X_XHGetTempAndHumi(&Temp,&Himi);   //获得温湿度信息
+  82   2              Tempshi=Temp/10;
+  83   2              Tempge=Temp%10;
+  84   2              Himishi=Himi/10;
+  85   2              Himige=Himi%10;
+  86   2      //        printf("Temperature:%d 'C Humidity:%d % \r\n",Temp,Himi);
+  87   2      
+  88   2      
+  89   2              // 读取电源电压
+  90   2              res = 0; 
+  91   2              for (i=0; i<8; i++)//读8次数据
+  92   2              {
+  93   3                res += ADCRead();
+  94   3              }
+  95   2              res >>= 3;//取平均值
+  96   2              vcc=res*reference;
+  97   2                      
+  98   2      //        printf("Vin:%d mV,ref %d/10mV, res %d\r\n",vcc/10,reference,res);
+  99   2              
+ 100   2      
+ 101   2              Buffer[0]= (Temp & 0xff00) >> 8;
+ 102   2              Buffer[1]=  Temp & 0x00ff;
+ 103   2              Buffer[2]= (Himi & 0xff00) >> 8;
+ 104   2              Buffer[3]=  Himi & 0x00ff;
+ 105   2              Buffer[4]= (co2Data & 0xff00) >> 8;
+ 106   2              Buffer[5]=  co2Data & 0x00ff;
+ 107   2              Buffer[6]= (TVOCData & 0xff00) >> 8;
+ 108   2              Buffer[7]=  TVOCData & 0x00ff;
+ 109   2              Buffer[8]= (vcc & 0xff00) >> 8;
+ 110   2              Buffer[9]=  vcc & 0x00ff;
+ 111   2              printf("AT+CIPSEND=0,20\r\n"); //TCP发送
+ 112   2              delay_ms(20);
+ 113   2              for (i=0; i < 20; i++)  
+ 114   2                  printf("%c", Buffer[i]); 
+ 115   2                  delay_ms(20);
+ 116   2              printf("   \r\n");
+C51 COMPILER V9.57.0.0   MAIN                                                              07/05/2021 01:07:50 PAGE 3   
+
+ 117   2              delay_ms(1700);
+ 118   2              //OLED显示
+ 119   2              vcc = 42000; //
+ 120   2              OLED_Clear(0);
+ 121   2              OLED_Init();        //初始化OLED
+ 122   2              GUI_DrawBMP(0,0,11,8, BMP1, 1);/*满格wifi*/
+ 123   2              if(vcc>41000)
+ 124   2                GUI_DrawBMP(114,0,14,8, BMP3, 1);/*满电量14*/
+ 125   2              else if(vcc>39000)
+ 126   2                GUI_DrawBMP(114,0,14,8, BMP4, 1);/*2/3电量14*/
+ 127   2              else if(vcc>37000)
+ 128   2                GUI_DrawBMP(114,0,14,8, BMP5, 1);/*1/3电量14*/
+ 129   2              else
+ 130   2                GUI_DrawBMP(114,0,14,8, BMP6, 1);/*0/3电量14*/
+ 131   2              TEST_Co2_Tvoc();        //CO2,气体颗粒物标识显示
+ 132   2              if(co2Data == 400 && TVOCData == 0 && flag == 0)
+ 133   2              {
+ 134   3                GUI_ShowChar(18,2,('W'-26),16,1);//删除未用到ASCII码后顺序补偿
+ 135   3                GUI_ShowChar(26,2,('A'-7),16,1);
+ 136   3                GUI_ShowChar(34,2,('I'-14),16,1);
+ 137   3                GUI_ShowChar(42,2,('T'-24),16,1);
+ 138   3                GUI_ShowChar(78,2,('W'-26),16,1);
+ 139   3                GUI_ShowChar(86,2,('A'-7),16,1);
+ 140   3                GUI_ShowChar(94,2,('I'-14),16,1);
+ 141   3                GUI_ShowChar(102,2,('T'-24),16,1);
+ 142   3              }
+ 143   2              else
+ 144   2              {
+ 145   3                GUI_ShowNum(22,2,TVOCData,3,16,1);
+ 146   3                GUI_ShowNum(78,2,co2Data,3,16,1);
+ 147   3              }     
+ 148   2              delay_ms(2000);
+ 149   2              
+ 150   2              OLED_Clear(0);
+ 151   2              GUI_DrawBMP(0,0,11,8, BMP1, 1);/*满格wifi*/
+ 152   2              if(vcc>41000)
+ 153   2                GUI_DrawBMP(114,0,14,8, BMP3, 1);/*满电量14*/
+ 154   2              else if(vcc>39000)
+ 155   2                GUI_DrawBMP(114,0,14,8, BMP4, 1);/*2/3电量14*/
+ 156   2              else if(vcc>37000)
+ 157   2                GUI_DrawBMP(114,0,14,8, BMP5, 1);/*1/3电量14*/
+ 158   2              else
+ 159   2                GUI_DrawBMP(114,0,14,8, BMP6, 1);/*0/3电量14*/
+ 160   2              TEST_Temp_Himi();        //温度,湿度标识显示
+ 161   2              GUI_ShowNum(20,2,Tempshi,2,16,1);
+ 162   2              GUI_ShowChar(36,2,'.',16,1);
+ 163   2              GUI_ShowNum(44,2,Tempge,1,16,1);
+ 164   2              GUI_ShowNum(78,2,Himishi,2,16,1);
+ 165   2              GUI_ShowChar(94,2,'.',16,1);
+ 166   2              GUI_ShowNum(102,2,Himige,1,16,1);
+ 167   2           }
+ 168   1          
+ 169   1      }
+ 170          
+ 171          
+ 172          
+ 173              
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1571    ----
+   CONSTANT SIZE    =    637    ----
+C51 COMPILER V9.57.0.0   MAIN                                                              07/05/2021 01:07:50 PAGE 4   
+
+   XDATA SIZE       =     15      37
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

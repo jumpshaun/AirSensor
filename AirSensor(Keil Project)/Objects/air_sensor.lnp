@@ -1,0 +1,13 @@
+".\Objects\main.obj",
+".\Objects\uart.obj",
+".\Objects\iic.obj",
+".\Objects\SGP30.obj",
+".\Objects\delay.obj",
+".\Objects\SHT3X.obj",
+".\Objects\test.obj",
+".\Objects\oled.obj",
+".\Objects\gui.obj",
+".\Objects\ADC.obj",
+".\Objects\8266.obj" 
+TO ".\Objects\air_sensor" 
+PRINT(".\Listings\air_sensor.m51") RAMSIZE(256) 

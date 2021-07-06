@@ -1,0 +1,221 @@
+C51 COMPILER V9.57.0.0   TEST                                                              07/03/2021 16:07:01 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE TEST
+OBJECT MODULE PLACED IN .\Objects\test.obj
+COMPILER INVOKED BY: C:\Program Files\Keil C51\C51\BIN\C51.EXE test.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND 
+                    -PRINT(.\Listings\test.lst) TABS(2) OBJECT(.\Objects\test.obj)
+
+line level    source
+
+   1          //////////////////////////////////////////////////////////////////////////////////   
+   2          //本程序只供学习使用，未经作者许可，不得用于其它任何用途
+   3          //测试硬件：单片机STC89C52RC,晶振12M  单片机工作电压3.3V或5V
+   4          //QDtech-OLED液晶驱动 for C51
+   5          //xiao冯@ShenZhen QDtech co.,LTD
+   6          //公司网站:www.qdtft.com
+   7          //淘宝网站：http://qdtech.taobao.com
+   8          //wiki技术网站：http://www.lcdwiki.com
+   9          //我司提供技术支持，任何技术问题欢迎随时交流学习
+  10          //固话(传真) :+86 0755-23594567 
+  11          //手机:15989313508（冯工） 
+  12          //邮箱:lcdwiki01@gmail.com    support@lcdwiki.com    goodtft@163.com
+  13          //技术支持QQ:3002773612  3002778157
+  14          //技术交流QQ群:324828016
+  15          //创建日期:2018/9/14
+  16          //版本：V1.0
+  17          //版权所有，盗版必究。
+  18          //Copyright(C) 深圳市全动电子技术有限公司 2018-2028
+  19          //All rights reserved
+  20          /****************************************************************************************************
+  21          //=========================================电源接线================================================//
+  22          // OLED模块                C51单片机
+  23          //   VCC         接       DC 5V/3.3V      //OLED屏电源正
+  24          //   GND         接          GND          //OLED屏电源地
+  25          //=======================================液晶屏数据线接线==========================================//
+  26          //本模块默认数据总线类型为IIC
+  27          // OLED模块                C51单片机
+  28          //   SDA        接           P15          //OLED屏SPI写信号
+  29          //=======================================液晶屏控制线接线==========================================//
+  30          // OLED模块                C51单片机
+  31          //   SCL        接           P17          //OLED屏SPI时钟信号
+  32          //=========================================触摸屏接线=========================================//
+  33          //本模块不带触摸功能，所以不需要触摸屏接线
+  34          ****************************************************************************************************/ 
+  35          /***************************************************************************************************
+  36            * @attention
+  37            *
+  38            * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
+  39            * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
+  40            * TIME. AS A RESULT, QD electronic SHALL NOT BE HELD LIABLE FOR ANY
+  41            * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
+  42            * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
+  43            * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
+  44          ****************************************************************************************************/   
+  45          //#include "stdlib.h"
+  46          #include "stdio.h"
+  47          #include "oled.h"
+  48          #include "gui.h"
+  49          #include "test.h"
+  50          //#include "bmp.h"
+  51          
+  52          
+  53          /*****************************************************************************
+  54           * @name       :void TEST_MainPage(void)
+C51 COMPILER V9.57.0.0   TEST                                                              07/03/2021 16:07:01 PAGE 2   
+
+  55           * @date       :2018-08-27 
+  56           * @function   :Drawing the main Interface of the Comprehensive Test Program
+  57           * @parameters :None
+  58           * @retvalue   :None
+  59          ******************************************************************************/
+  60          /*void TEST_MainPage(void)
+  61          { 
+  62            GUI_ShowString(37,0,"OLED TEST",8,1);
+  63            GUI_ShowString(25,1,"0.91\" SSD1306",8,1);
+  64            GUI_ShowString(46,2,"32X128",8,1);
+  65            GUI_ShowString(19,3,"www.lcdwiki.com",8,1);
+  66            delay_ms(1500);   
+  67            delay_ms(1500);
+  68          }
+  69          
+  70          /*****************************************************************************
+  71           * @name       :void Test_Color(void)
+  72           * @date       :2018-08-27 
+  73           * @function   :Color fill test(white,black)
+  74           * @parameters :None
+  75           * @retvalue   :None
+  76          ******************************************************************************/
+  77          /*void Test_Color(void)
+  78          {
+  79             GUI_Fill(0,0,WIDTH-1,7,0);
+  80             GUI_ShowString(10,1,"BLACK",16,1);
+  81             delay_ms(1000);  
+  82             GUI_Fill(0,0,WIDTH-1,7,1);
+  83             GUI_ShowString(10,1,"WHITE",16,0);
+  84             delay_ms(1500);
+  85          }
+  86          
+  87          /*****************************************************************************
+  88           * @name       :void TEST_English(void)
+  89           * @date       :2018-08-27 
+  90           * @function   :English display test
+  91           * @parameters :None
+  92           * @retvalue   :None
+  93          ******************************************************************************/
+  94          /*void TEST_English(void)
+  95          {
+  96            GUI_ShowString(0,1,"6x8:abcdefghijklmnopqrstuvwxyz",8,1);
+  97            delay_ms(1000);
+  98            GUI_ShowString(0,0,"8x16:abcdefghijklmnopqrstuvwxyz",16,1);
+  99            delay_ms(1000);
+ 100            OLED_Clear(0); 
+ 101            GUI_ShowString(0,1,"6x8:ABCDEFGHIJKLMNOPQRSTUVWXYZ",8,1);
+ 102            delay_ms(1000);
+ 103            GUI_ShowString(0,0,"8x16:ABCDEFGHIJKLMNOPQRSTUVWXYZ",16,1);
+ 104            delay_ms(1500);
+ 105          }
+ 106          
+ 107          /*****************************************************************************
+ 108           * @name       :void TEST_Number_Character(void) 
+ 109           * @date       :2018-08-27 
+ 110           * @function   :number and character display test
+ 111           * @parameters :None
+ 112           * @retvalue   :None
+ 113          ******************************************************************************/
+ 114          /*void TEST_Number_Character(void) 
+ 115          {
+ 116            GUI_Fill(0,0,WIDTH-1,1,0);
+C51 COMPILER V9.57.0.0   TEST                                                              07/03/2021 16:07:01 PAGE 3   
+
+ 117            GUI_ShowString(0,0,"6x8:!\"#$%&'()*+,-./:;<=>?@[]\\^_`~{}|",8,1);
+ 118            GUI_ShowNum(68,1,1234567890,10,8,1);
+ 119            GUI_Fill(0,2,WIDTH-1,3,1);
+ 120            GUI_ShowString(0,2,"6x8:!\"#$%&'()*+,-./:;<=>?@[]\\^_`~{}|",8,0);
+ 121            GUI_ShowNum(68,3,1234567890,10,8,0);
+ 122            delay_ms(1000);
+ 123            OLED_Clear(0); 
+ 124            GUI_ShowString(0,0,"8x16:!\"#$%&'()*+,-./:;<=>?@[]\\^_`~{}|",16,1);
+ 125            GUI_ShowNum(48,2,1234567890,10,16,1);
+ 126            delay_ms(1500);
+ 127            OLED_Clear(0);
+ 128          }
+ 129          
+ 130          /*****************************************************************************
+ 131           * @name       :void TEST_Chinese(void)
+ 132           * @date       :2018-08-27
+ 133           * @function   :chinese display test
+ 134           * @parameters :None
+ 135           * @retvalue   :None
+ 136          ******************************************************************************/
+ 137          /*void TEST_Chinese(void)
+ 138          { 
+ 139            GUI_ShowString(45,0,"16x16",8,1);
+ 140            GUI_ShowCHinese(16,2,16,"全动电子技术",1);
+ 141            delay_ms(1000);
+ 142            GUI_Fill(0,0,WIDTH-1,3,1);
+ 143            GUI_ShowString(45,0,"16x16",8,0);
+ 144            GUI_ShowCHinese(16,2,16,"全动电子技术",0);
+ 145            delay_ms(1000);
+ 146            OLED_Clear(0);
+ 147            GUI_ShowString(45,0,"24x24",8,1);
+ 148            GUI_ShowCHinese(16,1,24,"全动电子",1);
+ 149            delay_ms(1000);
+ 150            OLED_Clear(0);
+ 151            GUI_ShowCHinese(0,0,32,"全动电子",1); 
+ 152            delay_ms(1000);
+ 153            OLED_Clear(0);
+ 154          }*/
+ 155          
+ 156          /*****************************************************************************
+ 157           * @name       :void TEST_BMP(void)
+ 158           * @date       :2018-08-27 
+ 159           * @function   :BMP monochromatic picture display test
+ 160           * @parameters :None
+ 161           * @retvalue   :None
+ 162          ******************************************************************************/
+ 163          //void TEST_BMP(void)
+ 164          //{
+ 165          
+ 166          
+ 167          
+ 168          //  GUI_DrawBMP(0,0,128,16, BMP2, 1);
+ 169          //  delay_ms(1000);
+ 170          //}
+ 171          void TEST_Co2_Tvoc(void)
+ 172          {
+ 173   1        GUI_ShowString(12,1,"TVOC/Ppb",8,1);//8+6*8+8 
+ 174   1        GUI_ShowString(71,1,"CO2/Ppm",8,1);//64+11+6*7+11
+ 175   1      }
+ 176          void TEST_Temp_Himi(void)
+ 177          {
+ 178   1        GUI_ShowString(15,1,"TEMP/*C",8,1);//11+6*7+11  (*符号更改为°)
+C51 COMPILER V9.57.0.0   TEST                                                              07/03/2021 16:07:01 PAGE 4   
+
+ 179   1        GUI_ShowString(74,1,"HIMI/%",8,1);//64+14+6*6+14
+ 180   1      }
+ 181          
+ 182          //void TEST_CO2TVOC(void)
+ 183          //{
+ 184          //  GUI_DrawBMP(0,9,128,11, BMP7, 1);
+ 185          //  delay_ms(1000);
+ 186          //}
+ 187          //void TEST_TEMPHIMI(void)
+ 188          //{
+ 189          //  GUI_DrawBMP(0,9,128,11, BMP8, 1);
+ 190          //  delay_ms(1000);
+ 191          //}
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     88    ----
+   CONSTANT SIZE    =     32    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

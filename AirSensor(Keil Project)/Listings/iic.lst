@@ -1,0 +1,252 @@
+C51 COMPILER V9.57.0.0   IIC                                                               07/03/2021 16:16:35 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE IIC
+OBJECT MODULE PLACED IN .\Objects\iic.obj
+COMPILER INVOKED BY: C:\Program Files\Keil C51\C51\BIN\C51.EXE iic.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND P
+                    -RINT(.\Listings\iic.lst) TABS(2) OBJECT(.\Objects\iic.obj)
+
+line level    source
+
+   1          #include "iic.h"
+   2          
+   3          void I2CInit(void)
+   4          {
+   5   1        SDA = 1; 
+   6   1        SCL = 1;
+   7   1      }
+   8          /*================================================================
+   9          【  Name  】void I2CDelay (uchar t)
+  10          【Function】模拟IIC用的短延时 us
+  11          【  Notes 】
+  12          ================================================================*/
+  13          void I2CDelay (uchar t)          
+  14          {
+  15   1              while(t--);
+  16   1      }
+  17          
+  18          /*================================================================
+  19          【  Name  】void I2CStart(void)
+  20          【Function】I2C起始信号
+  21          【  Notes 】SCL、SDA同为高，SDA跳变成低之后，SCL跳变成低          
+  22          ================================================================*/
+  23          void I2CStart(void)
+  24          {        
+  25   1          SDA = 1;                       //发送起始条件的数据信号--ZLG
+  26   1          SCL = 1;
+  27   1          I2CDelay(50);                    //起始条件建立时间大于4.7us,延时--ZLG
+  28   1          SDA = 0;                            //发送起始信号-ZLG
+  29   1          I2CDelay(50);                    //起始条件锁定时间大于4μs--ZLG
+  30   1          SCL = 0;                            //钳住I2C总线，准备发送或接收数据--ZLG
+  31   1          I2CDelay(50);         
+  32   1      }
+  33          
+  34          /*================================================================
+  35          【  Name  】void I2CStop(void)
+  36          【Function】I2C停止信号
+  37          【  Notes 】SCL、SDA同为低，SCL跳变成高之后，SDA跳变成高           
+  38          ================================================================*/
+  39          void I2CStop(void)
+  40          {        
+  41   1          SDA = 0;                        //发送结束条件的数据信号--ZLG
+  42   1          SCL = 0;
+  43   1          I2CDelay(50);
+  44   1          SCL = 1;                        //发送结束条件的时钟信号--ZLG
+  45   1          I2CDelay(50);                //结束条件建立时间大于4μs--ZLG
+  46   1          SDA = 1;                        //发送I2C总线结束信号--ZLG
+  47   1          I2CDelay(50); 
+  48   1      }
+  49          
+  50          /*================================================================
+  51          【  Name  】uchar I2C_Write_Byte(uchar WRByte)
+  52          【Function】I2C写一个字节数据，返回ACK或者NACK
+  53          【  Notes 】从高到低，依次发送
+  54          ================================================================*/
+C51 COMPILER V9.57.0.0   IIC                                                               07/03/2021 16:16:35 PAGE 2   
+
+  55          uchar I2C_Write_Byte(uchar Write_Byte)  //Sendbyte
+  56          {
+  57   1              uchar i;   
+  58   1          SCL=0;  
+  59   1          I2CDelay(40); 
+  60   1              for(i=0;i<8;i++)              //要传送的数据长度为8位--ZLG
+  61   1              {         
+  62   2            if(Write_Byte&0x80)   //判断发送位--ZLG
+  63   2            {
+  64   3              SDA = 1;        
+  65   3            }
+  66   2            else
+  67   2            {
+  68   3              SDA = 0;
+  69   3            }
+  70   2            I2CDelay(20);                
+  71   2            SCL=1;                //输出SDA稳定后，拉高SCL给出上升沿，从机检测到后进行数据采样      
+  72   2            I2CDelay(20);         //保证时钟高电平周期大于4μs--ZLG
+  73   2            SCL=0;
+  74   2            I2CDelay(20);
+  75   2            Write_Byte <<= 1;
+  76   2              } 
+  77   1              I2CDelay(2);
+  78   1              SDA = 1;                      //8位发送完后释放数据线，准备接收应答位-ZLG
+  79   1          I2CDelay(100);
+  80   1          SCL = 1;                      //MCU告知SHT2X数据发送完毕，等待从机的应答信号        
+  81   1              I2CDelay(100);                   
+  82   1              /*以下是判断I2C总线接收应到应答信号是ACK还是NACK*/
+  83   1              if(SDA==1)                                   //SDA为高，收到NACK
+  84   1          {
+  85   2              SCL=0;
+  86   2              return NACK;   
+  87   2          }        
+  88   1              else                                         //SDA为低，收到ACK 
+  89   1          {
+  90   2              SCL=0;
+  91   2              return ACK;  
+  92   2          }  
+  93   1      }
+  94          
+  95          /*================================================================
+  96          【  Name  】uchar I2C_Read_Byte(uchar AckValue)
+  97          【Function】I2C读一个字节数据，入口参数用于控制应答状态，ACK或者NACK
+  98          【  Notes 】从高到低，依次接收
+  99          ================================================================*/
+ 100          uchar I2C_Read_Byte(uchar AckValue)//receivebyte
+ 101          {
+ 102   1              uchar i,RDByte=0;
+ 103   1              SCL=0;                                   //置时钟线为低，准备接收数据位--ZLG
+ 104   1              I2CDelay(80);  
+ 105   1              SDA = 1;                                 //释放总线,置数据线为输入方式--ZLG        
+ 106   1              for (i=0;i<8;i++) 
+ 107   1              {        
+ 108   2            SCL = 1;                          //SCL高电平期间，采集SDA信号，并作为有效数据 //置时钟线为高使数据线上
+             -数据有效--ZLG 
+ 109   2            I2CDelay(5);
+ 110   2            RDByte <<= 1;                  //移位
+ 111   2            if(SDA==1)                           //采样获取数据
+ 112   2            {
+ 113   3              RDByte |= 0x01;
+ 114   3            }
+ 115   2            else
+C51 COMPILER V9.57.0.0   IIC                                                               07/03/2021 16:16:35 PAGE 3   
+
+ 116   2            {
+ 117   3              RDByte &= 0xfe;
+ 118   3            }
+ 119   2            I2CDelay(20);
+ 120   2            SCL = 0;                             //下降沿，从机给出下一位值
+ 121   2            I2CDelay(60);
+ 122   2          }   
+ 123   1              /*以下是I2C总线发送应答信号ACK或者NACK*/
+ 124   1              SDA = AckValue;                      //应答状态        
+ 125   1              I2CDelay(60);
+ 126   1              SCL = 1;                         
+ 127   1              I2CDelay(100);                  //时钟低电平周期大于4μs--ZLG
+ 128   1              SCL = 0;                                  //清时钟线，钳住I2C总线以便继续接收--ZLG               
+ 129   1              I2CDelay(300);       
+ 130   1              return RDByte;
+ 131   1      }
+ 132          
+ 133          /*****************************************************************************
+ 134           * @name       :void IIC_Stop(void)
+ 135           * @date       :2018-09-13 
+ 136           * @function   :stop iic bus
+ 137           * @parameters :None
+ 138           * @retvalue   :None
+ 139          ******************************************************************************/
+ 140          
+ 141          /*****************************************************************************
+ 142           * @name       :void IIC_Wait_Ack(void)
+ 143           * @date       :2018-09-13 
+ 144           * @function   :wait iic ack
+ 145           * @parameters :None
+ 146           * @retvalue   :None
+ 147          ******************************************************************************/
+ 148          void IIC_Wait_Ack(void)
+ 149          {
+ 150   1        SCL=1;
+ 151   1        SCL=0;
+ 152   1      }
+ 153          
+ 154          /*****************************************************************************
+ 155           * @name       :void Write_IIC_Byte(u8 IIC_Byte)
+ 156           * @date       :2018-09-13 
+ 157           * @function   :Write a byte of content with iic bus
+ 158           * @parameters :IIC_Byte
+ 159           * @retvalue   :None
+ 160          ******************************************************************************/
+ 161          void Write_IIC_Byte(u8 IIC_Byte)
+ 162          {
+ 163   1        u8 i;
+ 164   1        u8 m,da;
+ 165   1        da=IIC_Byte;
+ 166   1        SCL=0;
+ 167   1        for(i=0;i<8;i++)    
+ 168   1        {
+ 169   2          m=da;
+ 170   2          m=m&0x80;
+ 171   2          if(m==0x80)
+ 172   2          {
+ 173   3            SDA=1;
+ 174   3          }
+ 175   2          else
+ 176   2          {
+ 177   3            SDA=0;
+C51 COMPILER V9.57.0.0   IIC                                                               07/03/2021 16:16:35 PAGE 4   
+
+ 178   3          }
+ 179   2          da=da<<1;
+ 180   2          SCL=1;
+ 181   2          SCL=0;
+ 182   2        }
+ 183   1      }
+ 184          
+ 185          /*****************************************************************************
+ 186           * @name       :void Write_IIC_Command(u8 IIC_Command)
+ 187           * @date       :2018-09-13 
+ 188           * @function   :Write a byte of command to oled screen
+ 189           * @parameters :IIC_Command:command to be written
+ 190           * @retvalue   :None
+ 191          ******************************************************************************/
+ 192          void Write_IIC_Command(u8 IIC_Command)
+ 193          {
+ 194   1        I2CStart();
+ 195   1        Write_IIC_Byte(IIC_SLAVE_ADDR);            //Slave address,SA0=0
+ 196   1        IIC_Wait_Ack(); 
+ 197   1        Write_IIC_Byte(0x00);     //write command
+ 198   1        IIC_Wait_Ack(); 
+ 199   1        Write_IIC_Byte(IIC_Command); 
+ 200   1        IIC_Wait_Ack(); 
+ 201   1        I2CStop();
+ 202   1      }
+ 203          
+ 204          /*****************************************************************************
+ 205           * @name       :void Write_IIC_Data(u8 IIC_Data)
+ 206           * @date       :2018-09-13 
+ 207           * @function   :Write a byte of data to oled screen
+ 208           * @parameters :IIC_Data:data to be written
+ 209           * @retvalue   :None
+ 210          ******************************************************************************/
+ 211          void Write_IIC_Data(u8 IIC_Data)
+ 212          {
+ 213   1        I2CStart();
+ 214   1        Write_IIC_Byte(IIC_SLAVE_ADDR);     //D/C#=0; R/W#=0
+ 215   1        IIC_Wait_Ack(); 
+ 216   1        Write_IIC_Byte(0x40);     //write data
+ 217   1        IIC_Wait_Ack(); 
+ 218   1        Write_IIC_Byte(IIC_Data);
+ 219   1        IIC_Wait_Ack(); 
+ 220   1        I2CStop();
+ 221   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    297    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
